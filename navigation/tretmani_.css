@@ -1,0 +1,48 @@
+body {
+    margin: 0;
+    padding: 0;
+}
+
+/* Tretmani  */
+.flex-grid .row {
+    flex: 100%;
+}
+
+.flex-grid .column {
+    display: flex;
+    text-align: center;
+    justify-content: center;
+}
+
+.flex-grid img {
+    height: 400px;
+    width: 400px;
+    padding: 5px;
+    flex: 100%;
+}
+
+
+.flex-grid p {
+    padding-top: -200px;
+    height: 400px;
+    width: 400px;
+    position: absolute;
+    margin-top: -500px;
+    font-size: 30px;
+    text-align: center;
+    justify-content: center;
+    padding-top: 230px;
+    color: black;
+    visibility: hidden;
+    font-family: Verdana, Geneva, Tahoma, sans-serif;
+}
+
+.flex-grid .box:hover img {
+    opacity: 0.3;
+}
+
+.flex-grid .box:hover p {
+    color: #766ee9;
+    visibility: visible;
+
+}

@@ -1,0 +1,68 @@
+body {
+    margin: 0 0;
+    padding: 0;
+}
+
+.list {
+    display: flex;
+}
+
+h2 {
+    font-weight: bold;
+    font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+    padding: 0px 30px;
+    text-decoration: underline;
+    text-align: center;
+}
+
+
+
+.list .row {
+    flex: 100%;
+}
+
+.list .column {
+    display: flex;
+    justify-content: center;
+    text-align: center;
+
+}
+
+.list .tijelo {
+    border: 3px solid black;
+    margin: 5px 50px;
+    width: 600px;
+}
+
+.list .lice {
+    border: 3px solid black;
+    margin: 5px 50px;
+    width: 600px;
+}
+
+.title {
+    float: left;
+    font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+    font-size: 20px;
+}
+
+.price {
+    float: right;
+    font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+    font-size: 20px;
+}
+
+.list .tijelo h2 {
+    background: green;
+}
+
+.list .lice h2 {
+    background: blue;
+}
+
+.cjenik {
+    justify-content: center;
+    text-align: center;
+    margin: 5% 0;
+
+}
