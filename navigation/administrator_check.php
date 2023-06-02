@@ -1,4 +1,6 @@
 <?php
+//provjeri postoji li cookie, ako da onda je admin prijavljen i poslan je zahtjev za odjavom
+// poništi cookie i postavi ga na null i vrijeme na -1 (traje -1 sekundu, tj def ga vise nema)
 if(isset($_COOKIE["user"])){
     session_destroy();
     unset($_COOKIE['user']); 
@@ -10,6 +12,10 @@ if(isset($_COOKIE["user"])){
             </script>";
             return;
 }
+//ako cookie ne postoji onda je poslan zahtjev za prijavom, spoji se na bazu, dohvati argumente
+//koje je poslala forma i provjeri postoji li u bazi taj admin, ako postoji kreiraj cookie i preusmjeri 
+//ga na rezervacije da moze provjeriti tko je sta rezervirao, ako prijava nije uspjesna ispisi poruku
+//i vrati na login
 else{
     include("connect.php");
     $username = $_REQUEST['username'];
@@ -26,7 +32,7 @@ else{
         echo "<script>
             var timer = setTimeout(function() {
             window.location='rezervacija.php/?week=0'
-            }, 3000);
+            }, 30);
             </script>";
             return;
     }

@@ -33,6 +33,7 @@
         </div>
     </header>
     <?php
+    //ako cookie postoji napravi formu za odjavit se i ispisi trenutnog korisnika
         if(isset($_COOKIE["user"])){
             echo "<form action='administrator_check.php' method='post' class='content'>";
             echo "<h2>Administratorska prijava</h2>";
@@ -40,6 +41,7 @@
             echo "<button type='submit' class='button-submit'>Odjavi se</button>";
             echo "</form>";
         }
+    //ako cookie ne postoji napravi formu za prijavu admina
         else{
             echo "<form action='administrator_check.php' method='post' class='content'>";
             echo "<h2>Administratorska prijava</h2>";

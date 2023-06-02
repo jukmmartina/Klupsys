@@ -33,10 +33,11 @@
     </header>
 
     <?php
+    //spoji se na bazu i postavi vremensku zonu (zbog rezervacije)
         include("connect.php");
         date_default_timezone_set('Europe/Sarajevo');
     ?>
-
+    <!-- Kreiraj formu za rezervaciju  -->
     <form action="/navigation/insert.php" method="post" class="reservation">
       <div class = "field-group">
           <input name="name" id="name" type="text" class = "input-field" placeholder="Ime i prezime" required>
@@ -57,6 +58,8 @@
             <select name="group" id="group" class = "input-field" placeholder="Odaberi vrstu tretmana">
                 <option value="select">Odaberi vrstu tretmana</option>
                 <?php
+                //tretmani u bazi su redani po grupama jedan iza drugog pa se moze na ovakav nacin dohvacati razlicite grupe
+                //inace bi se morao dodati array pa u njega spremati opcije i provjeravati jesu unique
                     $sql = "SELECT * FROM tretmani";
                     $result = $conn->query($sql);
                     while($row = $result->fetch_assoc()) {
@@ -69,40 +72,31 @@
       </div>
       <div class = "field-group">
             <select name="treatment" id="treatment" class = "input-field" placeholder="Odaberi tretman">
+                <!-- Dok se ne odabere grupa jedina opcija za odabir je 'Odaberi tretman'  -->
                 <option value="select">Odaberi tretman</option>
-                <?php
-                    if(isset($_POST["group"]) && !empty($_POST["group"])){
-                        $sql = "SELECT * FROM tretmani WHERE group=" .$_POST["group"];
-                        $result = $conn->query($sql);
-                        while($row = $result->fetch_assoc()) {
-                            echo "<option value='". $row['treatment']. "'>" . $row['treatment']. "</option>";
-                        }
-                    }
-                    else{
-                        $result = $conn->query($sql);
-                        while($row = $result->fetch_assoc()) {
-                            echo "<option value='". $row['treatment']. "'>" . $row['treatment']. "</option>";
-                        } 
-                    }
-                ?>
             </select>
             <label for="treatment" class="input-label">Tretman</label>
       </div>
       <div class = "field-group">
           <?php
+          //za odabir datuma su omogucena tjedna (trenutni i naredna)
+          //ako je proslo 19h vise se ne moze rezervirati termin za trenutni datum nego tek od sutrasnjeg datuma
             if(date("H")>date("H", strtotime("19:00"))){
                 $min_day = date('Y-m-d', strtotime('+1 day'));
             }
             else{
                 $min_day = date('Y-m-d');
             }
+            //trenutni i iduca 3, iz cega s racuna max_day (zanji an za rezervaciju)
             $week = date('w') + 3*7;
             $max_day = date('Y-m-d', strtotime("+". (intval($week/7)*7-($week%7-1)+4) ."days"));
+            //min_day i max_day se predaju kao opseg za kalendar
             echo "<input name='date' id='date' type='date' required class = 'input-field' min='" .$min_day ."' max='" .$max_day ."'>"
           ?>
           <label for="date" class="input-label">Datum</label>
       </div>
       <div class = "field-group">
+        <!-- Radno vrijeme od 13-20h, ali se mora dodatno provjeriti zbog trajanja termina -->
           <input name="time" id="time" type="time" required class = "input-field" min="13:00" max="20:00">
           <label for="time" class="input-label">Vrijeme</label>
       </div>
@@ -112,17 +106,22 @@
   <div class="left-right">
         <span></span>
         <?php
+            //dohvati iz url-a week=n i spremi u varijablu page iz koje se racuna trazeni tjeda za prikaz (week)
             $page = intval($_GET["week"]);
             $week = date('w') + $page*7;
+            //ako je week=0 onda strelica za prethodi tjedan ne radi nista
             if($page == 0){
                 echo "<a><i class='fa fa-chevron-left' aria-hidden='true'></i></a>";
             }
+            //ako nije ostavi url za week=trenutni-1
             else{
                 echo "<a href='?week=" .($page-1) ."'><i class='fa fa-chevron-left' aria-hidden='true'></i></a>";
             }
+            //izracuaj prvi i zadnji dan u tjednu za prikaz u rasporedu
             $first_day_of_week = date('d.m.Y', strtotime("+". (intval($week/7)*7-($week%7-1)) ." days"));
             $last_day_of_week = date('d.m.Y', strtotime("+". (intval($week/7)*7-($week%7-1)+4) ."days"));
             echo "<span>" .$first_day_of_week ." - " .$last_day_of_week ."</span>";
+            //ako je week=3 onda strelica za otvaranje iduceg tjedna ne radi nista
             if($page == 3){
                 echo "<a><i class='fa fa-chevron-right' aria-hidden='true'></i></a>";
             }
@@ -133,7 +132,7 @@
         <span></span>
   </div>
 
-
+<!-- Kreiraj container za raspored termina u kalendaru  -->
 <div class = "calendar-container">
 
 <div class="calendar-header">
@@ -146,8 +145,10 @@
   </ul>
   <ul class = "dates">
   <?php
+  //iz nekog razloga moram ponovo definirati ili mi rasporedd bude prazan
       $first_day_of_week = date('Y-m-d', strtotime("+". (intval($week/7)*7-($week%7-1)) ." days"));
       $last_day_of_week = date('Y-m-d', strtotime("+". (intval($week/7)*7-($week%7-1)+4) ."days"));
+      //ispisi sve radne datume u tjednu u rasporedu
       for($i=0; $i<5; $i++){
           $temp_date = date('d.m.Y.', strtotime($first_day_of_week ."+" .$i ."days"));
           echo "<li>" .$temp_date ."</li>";
@@ -157,6 +158,7 @@
 </div>
 <div class= "timeslots-container">
   <ul class="timeslots">
+    <!-- vremena -->
       <li>13<sup>00</li>
       <li>14<sup>00</li>
       <li>15<sup>00</li>
@@ -168,10 +170,14 @@
 </div>
 <div class="event-container">
   <div class="slot pauza">
+    <!-- Odmah ubaci pauzu u raspored -->
       <span>PAUZA</span><br>
       <span>16:00-16:30</span>
   </div>
   <?php
+  //spoji se na bazu i dohvati sve rezervacije i prikazi one koje se nalaze izmedu first i last day of week,
+  // pojedine grupe tretmana su prikazane razlicitom bojom radi lakseg snalazenja, a velicina kontenjera odgovara
+  //trajanju tretmana
       include("connect.php");
       $sql = "SELECT * FROM `rezervacije`";
       $rezervacije = mysqli_query($conn, $sql);
@@ -221,10 +227,12 @@
               }
               $from_to = $start ."-" .$end;
               $style = "height:" .$duration . "px; grid-row:" .$roww ."; grid-column:" .$column ."/" .$column ."; background: " .$color .";";
+              //ukoliko je administrator prijavljen prikazi dodatne informacije o tretmani (tko je rezervirao, kontakt i kada)
               if(isset($_COOKIE["user"])){
                 $additional_info = $row['name'] .", " .$row['email'] .", " .$row['number'];
                 echo "<div class='slot' style='" .$style ."'><a href='' style='text-decoration:none; color=black;' title='" .$additional_info ."'>" .$row['treatment'] ."(" .$from_to .")</a></div>";
               }
+              //ako nije prijavljen administrator samo pokazi da je termin zauzet
               else{
                 echo "<div class='slot' style='" .$style ."'>Rezervirano (" .$from_to .")</a></div>";
               }
@@ -245,39 +253,45 @@
 
    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
     <script>
-        
+    //ovo bi trebalo kada se odabere grupa tretmana prikazati samo tretmane iz te grupe za laksi odabir
+    //ali iz nekog razloga je POST uvjek prazan (prbala sam i GET i REQUEST i s cookies napraviti, ali
+    // je uvijek pazno sve, a cookies mi kasne), mozda ga zezaju nasi znakovi (č, ć...), ali osim toga radi
+    //sto je ocekivano, kada se odabere grupa tretmana izlistaju se svi tretmani (nalazost ne samo iz te grupe)
     var code =
     `<option value="select">Odaberi tretman</option>
     <?php 
-        if(isset($_POST["group"]) && !empty($_POST["group"])){
-            $sql = "SELECT * FROM tretmani WHERE group=" .$_POST["group"];
+        if(isset($_REQUEST["group"]) && !empty($_REQUEST["group"])){
+            $sql = "SELECT * FROM tretmani WHERE group=" .$_REQUEST["group"];
             $result = $conn->query($sql);
             while($row = $result->fetch_assoc()) {
                 echo "<option value='". $row['treatment']. "'>" . $row['treatment']. "</option>";
             }
         }
         else {
-            echo "<option value='error'>Nema POST varijable</option>";
+            $sql = "SELECT * FROM tretmani";
+            $result = $conn->query($sql);
+            while($row = $result->fetch_assoc()) {
+                echo "<option value='". $row['treatment']. "'>" . $row['treatment']. "</option>";
+            }
         }
     ?>`;
     $(document).ready(function() 
     { 
+        //kada se promijeni vrijednost grupe putem selecta dohvati novu vrijednost
         $('#group').on('change',function(){ 
             var group = $(this).val();  
             if(group) 
             { 
                 console.log(group);
+                //Posalji post zahtjev na stranicu rezervacija  koja onda (ne)moze na osnovu grupe filtrirati tretmane
                 $.ajax({ type:'POST', url:'/navigation/rezervacija.php',  data: ('group=' + group), contentType: "html", success:function(html) 
                 { 
-                    //var date = new Date();
-                    //date.setTime(date.getTime()+(30*1000));
-                    //document.cookie = "POST=" + group +"; expires=" + date.toGMTString() + ";path=/";
-                    //console.log(document.cookie)
                     $('#treatment').html(code);
                 }  
                 }); 
             } 
             else{  
+                //ako nema grupe posalji da treba odabrati grupu tretmana
                 $('#treatment').html('<option value="">Odabrite grupu tretmana</option>'); 
             } 
         });

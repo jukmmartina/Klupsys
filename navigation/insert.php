@@ -8,8 +8,17 @@
  
 <body>
         <?php
+        //Koristi PHPMailer za slanje mailova jer mi pomocu mail() funkcije nije radilo
+        use PHPMailer\PHPMailer\PHPMailer;
+        require_once '../PHPMailer/src/Exception.php';
+        require_once '../PHPMailer/src/PHPMailer.php';
+        require_once '../PHPMailer/src/SMTP.php';
+        $mail = new PHPMailer(true);
+        
+        //spoji se na bazu
         include("connect.php");
         $is_found = FALSE;
+        //Dohvati varijable iz POST requesta koji salje forma
         $name = $_REQUEST['name'];
         $email = $_REQUEST['email'];
         $telephone = $_REQUEST['telephone'];
@@ -18,6 +27,8 @@
         $date = $_REQUEST['date'];
         $time = $_REQUEST['time'];
 
+        //izracunaj dan u tjednu i ako je nedjelja ili subota odbij spremanje, 
+        //ispisi poruku 3s i ponovno ucitaj stranicu za rezerviranje
         $weekday = intval(date("w", strtotime($date)))%7;
         if($weekday==0 || $weekday==6){
             echo "<h4>Termini se ne mogu rezervirati za vikend! Pokušajte ponovo..<h4>";
@@ -29,35 +40,28 @@
             return;
         }
 
+        //Probaj dohvatiti tretman iz baze i provjeri podudara li se grupa tretmana, 
+        //ako da dohvati trajanje tretmana, ako ne ispisi pogresku i vrati ponovno na rezervaciju
         $sql = "SELECT * FROM `tretmani` WHERE `treatment`='$treatment'";
         if($result = mysqli_query($conn, $sql)){
-            //echo "$name, $email, $telephone, $group, $treatment, $date, $time";
-        }
-        else{
-            echo "<h4>Group and treatment don't match<h4>";
-            echo "<script>
-                var timer = setTimeout(function() {
-                window.location='rezervacija.php/?week=0'
-                }, 3000);
-                </script>";
-            return;
-        }
-        while($row = $result->fetch_assoc()){
-            if($row['group']==$group){
-                $duration = $row['duration'];
-                $is_found = TRUE;
+            while($row = $result->fetch_assoc()){
+                if($row['group']==$group){
+                    $duration = $row['duration'];
+                    $is_found = TRUE;
+                }
+            }
+            if(!$is_found){
+                echo "<h4>Pogreška! Pokušajte ponovo..<h4>";
+                echo "<script>
+                    var timer = setTimeout(function() {
+                    window.location='rezervacija.php/?week=0'
+                    }, 3000);
+                    </script>";
+                    return;
             }
         }
-        if(!$is_found){
-            echo "<h4>Pogreška! Pokušajte ponovo..<h4>";
-            echo "<script>
-                var timer = setTimeout(function() {
-                window.location='rezervacija.php/?week=0'
-                }, 3000);
-                </script>";
-                return;
-        }
 
+        //odredi pocetak i kraj termina te provjeri ulazi li u termin pauze
         $start = strtotime($time);
         $end = date("H:i",strtotime('+' .$duration .' minutes', $start));
         $start = date("H:i", $start);
@@ -73,6 +77,7 @@
                 return;
         }
 
+        //provjeri izlazi li termin van radnog vremena
         $work_start = date("H:i" ,strtotime("13:00"));
         $work_end = date("H:i" ,strtotime("20:00"));
         if($start < $work_start || $end > $work_end){
@@ -85,6 +90,7 @@
                 return;
         }
 
+        //provjeri preklapa li se termin s vec postojecim terminom u bazi
         $sql = "SELECT * FROM `rezervacije` WHERE `date`='$date';";
         $result = mysqli_query($conn, $sql);
         while($row = $result->fetch_assoc()){
@@ -101,17 +107,30 @@
                 return;
             }
         }
-        $sql = "INSERT INTO `rezervacije` (`date`, `start_time`, `duration`, `group`, `treatment`, `name`, `email`, `number`) VALUES ('$date','$time','$duration','$group','$treatment','$name', '$email', '$telephone')";
+
+        //ako je sve uredno proslo unesi rezervaciju u bazu i posalji mail potvrde
+        $sql = "INSERT INTO `rezervacije` (`date`, `start_time`, `duration`, `group`, `treatment`, `name`, `email`, `number`)
+                VALUES ('$date','$time','$duration','$group','$treatment','$name', '$email', '$telephone')";
         if(mysqli_query($conn, $sql)){
             echo "Rezervacija uspješna! Preusmjeravanje na početnu...";
-            $msg = "Rezerviran tretman $group: $treatment u terminu $date s početkom u $time za osobu $name. \n
-                    U slučaju bilo kakvih pitanja obratite nam se putem maila klupsys@gmail.com ili putem telefona +35897276027\n
-                    Hvala Vam na povjerenju!";
-            $headers = "From: klupsys@gmail.com" . "\r\n";
-            $headers .= "MIME-Version: 1.0" . "\r\n";
-            $headers .= "Content-type: text/html; charset=iso-8859-1" . "\r\n";
-            // send email
-            mail($email,"Potvrda rezervacije",$msg, $headers);
+
+            //Postavljanje i slanje maila
+            $mail->isSMTP();
+            $mail->Host = 'smtp.gmail.com';
+            $mail->SMTPAuth = true;
+            $mail->Username = 'klupsys@gmail.com';
+            $mail->Password = 'kmoagudkcnyukbgu';
+            $mail->SMTPSecure = 'tls';
+            $mail->Port = '587';
+            $mail->setFrom('klupsys@gmail.com');
+            $mail->addAddress($email);
+            $mail->isHTML(true);
+            $mail->Subject = "Potvrda rezervacije";
+            $mail->Body =  'Rezerviran tretman ' .$group .': ' .$treatment .' u terminu ' .$date .' s početkom u ' .$time .' za osobu ' .$name .'. <br>
+                            U slučaju bilo kakvih pitanja obratite nam se putem maila klupsys@gmail.com ili putem telefona +35897276027<br>
+                            Hvala Vam na povjerenju!';
+            $mail->send();
+            
         } else{
             echo "ERROR: Hush! Sorry $sql. "
                 . mysqli_error($conn);
@@ -120,6 +139,7 @@
         // Close connection
         mysqli_close($conn);
         ?>
+    <!-- Vrati na pocetnu ako je rezervacija uspjela  -->
     <script>
         var timer = setTimeout(function() {
            window.location='index.html'
