@@ -40,7 +40,7 @@ else{
         echo "<h1>Neuspješna prijava! Pokušajte ponovo...</h1>";
         echo "<script>
             var timer = setTimeout(function() {
-            window.location='login.html'
+            window.location='login.php'
             }, 3000);
             </script>";
             return;
